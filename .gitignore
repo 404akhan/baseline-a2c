@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+model-*
+nohup*
+*.log
+rest*.py
+a3c/tmp*
+logs/

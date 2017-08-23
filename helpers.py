@@ -31,17 +31,15 @@ class WrapEnv(object):
           'height': str(height)
     })
 
-    self.num_actions = len(ACTION_LIST)
+    self.action_space = len(ACTION_LIST)
+    self.observation_space = (80, 80, 1)
 
   def reset(self):
     self.env.reset()
     obs = self.env.observations()
     obs = obs['RGB_INTERLACED']
     obs = rgb2gray(obs)
-    obs = np.expand_dims(obs, axis=0)
-
-    obs = obs.astype(np.float32)
-    obs *= (1.0 / 255.0)
+    obs = np.expand_dims(obs, axis=2)
 
     return obs
 
@@ -53,12 +51,11 @@ class WrapEnv(object):
       obs = self.env.observations()
       obs = obs['RGB_INTERLACED']
       obs = rgb2gray(obs)
-      obs = np.expand_dims(obs, axis=0)
+      obs = np.expand_dims(obs, axis=2)
     else:
-      obs = np.zeros((1, 80, 80)) # todo check datatype, maybe int8
-
-    obs = obs.astype(np.float32)
-    obs *= (1.0 / 255.0)
+      obs = np.zeros((80, 80, 1), dtype=np.uint8) # todo check datatype, maybe int8
 
     return obs, reward, done, {'ale.lives': 0}
 
+  def close(self):
+    self.env.close()

@@ -10,14 +10,15 @@ import tensorflow as tf
 from wrappers import SubprocVecEnv, wrap_deepmind
 from utils import *
 from monitor import Monitor
+from helpers import WrapEnv
 
 
 class CnnPolicy(object):
     def __init__(self, sess, ob_space, ac_space, nenv, nsteps, nstack, reuse=False):
         nbatch = nenv*nsteps
-        nh, nw, nc = ob_space.shape
+        nh, nw, nc = ob_space
         ob_shape = (nbatch, nh, nw, nc*nstack)
-        nact = ac_space.n
+        nact = ac_space
         X = tf.placeholder(tf.uint8, ob_shape) #obs
         with tf.variable_scope("model", reuse=reuse):
             h = conv(tf.cast(X, tf.float32)/255., 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2))
@@ -55,7 +56,7 @@ class Model(object):
                                 inter_op_parallelism_threads=num_procs)
         config.gpu_options.allow_growth = True
         sess = tf.Session(config=config)
-        nact = ac_space.n
+        nact = ac_space
         nbatch = nenvs*nsteps
 
         A = tf.placeholder(tf.int32, [nbatch])
@@ -123,7 +124,7 @@ class Runner(object):
     def __init__(self, env, model, nsteps=5, nstack=4, gamma=0.99):
         self.env = env
         self.model = model
-        nh, nw, nc = env.observation_space.shape
+        nh, nw, nc = env.observation_space
         nenv = env.num_envs
         self.batch_ob_shape = (nenv*nsteps, nh, nw, nc*nstack)
         self.obs = np.zeros((nenv, nh, nw, nc*nstack), dtype=np.uint8)
@@ -210,7 +211,7 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
 parser = argparse.ArgumentParser(description='A2C')
 parser.add_argument('--nenvs', type=int, default=16)
 parser.add_argument('--seed', type=int, default=42)
-parser.add_argument('--env-name', default='Breakout')
+parser.add_argument('--env-name', default='stairway_to_melon')
 parser.add_argument('--log-dir', default='logs')
 
 
@@ -226,11 +227,12 @@ if __name__ == '__main__':
 
     def make_env(rank):
         def env_fn():
-            env = gym.make('{}NoFrameskip-v4'.format(args.env_name))
-            env.seed(args.seed + rank)
-            env = Monitor(env, osp.join(args.log_dir, "{}.monitor.json".format(rank)))
-            gym.logger.setLevel(logging.WARN)
-            return wrap_deepmind(env)
+            env = WrapEnv(args.env_name)
+            # env.seed(args.seed + rank)
+            # env = Monitor(env, osp.join(args.log_dir, "{}.monitor.json".format(rank)))
+            # gym.logger.setLevel(logging.WARN)
+            # return wrap_deepmind(env)
+            return env
         return env_fn
 
     env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])

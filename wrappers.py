@@ -58,17 +58,17 @@ class SubprocVecEnv(VecEnv):
         """
         envs: list of gym environments to run in subprocesses
         """
-        nenvs = len(env_fns)
-        self.remotes, self.work_remotes = zip(*[Pipe() for _ in range(nenvs)])        
+        self.nenvs = len(env_fns)
+        self.remotes, self.work_remotes = zip(*[Pipe() for _ in range(self.nenvs)])        
         self.ps = [Process(target=worker, args=(work_remote, CloudpickleWrapper(env_fn))) 
             for (work_remote, env_fn) in zip(self.work_remotes, env_fns)]
         for p in self.ps:
             p.start()
 
+
         self.remotes[0].send(('get_spaces', None))
         self.action_space, self.observation_space = self.remotes[0].recv()
-
-
+        
     def step(self, actions):
         for remote, action in zip(self.remotes, actions):
             remote.send(('step', action))
