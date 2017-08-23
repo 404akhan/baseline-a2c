@@ -227,7 +227,7 @@ if __name__ == '__main__':
 
     def make_env(rank):
         def env_fn():
-            env = WrapEnv(args.env_name)
+            env = WrapEnv(args.env_name, os.path.join(args.log_dir, "{}.monitor.json".format(rank)))
             # env.seed(args.seed + rank)
             # env = Monitor(env, osp.join(args.log_dir, "{}.monitor.json".format(rank)))
             # gym.logger.setLevel(logging.WARN)
