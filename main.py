@@ -49,7 +49,7 @@ class CnnPolicy(object):
 
 class Model(object):
     def __init__(self, policy, ob_space, ac_space, nenvs, nsteps, nstack, num_procs,
-            ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
+            ent_coef=0.001, vf_coef=0.5, max_grad_norm=0.5, lr=7e-4,
             alpha=0.99, epsilon=1e-5, total_timesteps=int(80e6), lrschedule='linear'):
         config = tf.ConfigProto(allow_soft_placement=True,
                                 intra_op_parallelism_threads=num_procs,
@@ -189,7 +189,7 @@ class Runner(object):
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
 
 
-def learn(policy, env, seed, save_path, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
+def learn(policy, env, seed, save_path, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.001, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
 
     nenvs = env.num_envs
@@ -209,8 +209,8 @@ def learn(policy, env, seed, save_path, nsteps=5, nstack=4, total_timesteps=int(
         nseconds = time.time()-tstart
         fps = int((update*nbatch)/nseconds)
         if update % log_interval == 0 or update == 1:
-            print("nupdates {}, total_timesteps {}, fps {}, policy_entropy {}, value_loss {}".format(\
-                update, update*nbatch, fps, float(policy_entropy), float(value_loss)))
+            print("nupdates {}, total_timesteps {}, fps {}, policy_loss {}, value_loss {}, policy_entropy {}".format(\
+                update, update*nbatch, fps, float(policy_loss), float(value_loss), float(policy_entropy)))
         if update % (log_interval*100) == 0 or update == 1:
             model.save(save_path)
 
