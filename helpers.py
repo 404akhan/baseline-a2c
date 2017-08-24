@@ -11,16 +11,10 @@ def _action(*entries):
 ACTION_LIST = [
   _action(-20, 0, 0, 0, 0, 0, 0),
   _action(20, 0, 0, 0, 0, 0, 0),
-  _action(0, 10, 0, 0, 0, 0, 0),
-  _action(0, -10, 0, 0, 0, 0, 0),
-  _action(0, 0, -1, 0, 0, 0, 0),
-  _action(0, 0, 1, 0, 0, 0, 0),
   _action(0, 0, 0, 1, 0, 0, 0),
   _action(0, 0, 0, -1, 0, 0, 0),
-  _action(0, 0, 0, 0, 1, 0, 0),
-  _action(0, 0, 0, 0, 0, 1, 0),
-  _action(0, 0, 0, 0, 0, 0, 1)
 ]
+
 
 class JSONLogger(object):
     def __init__(self, file):
@@ -85,7 +79,7 @@ class WrapEnv(object):
       epinfo = {"r": self.rewards, "l": self.ep_len, "t": round(time.time() - self.tstart, 6)}
       self.logger.writekvs(epinfo)
 
-    return obs, reward, done, {'ale.lives': 0}
+    return obs, np.clip(reward, -1.0, 1.0), done, {'ale.lives': 0}
 
   def close(self):
     self.env.close()
