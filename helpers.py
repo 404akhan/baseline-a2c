@@ -46,11 +46,13 @@ class WrapEnv(object):
     self.logger = JSONLogger(file)
     self.rewards = 0
     self.ep_len = 0
+    self.action_stat = [0] * self.action_space
     self.tstart = time.time()
 
   def reset(self):
     self.rewards = 0
     self.ep_len = 0
+    self.action_stat = [0] * self.action_space
 
     self.env.reset()
     obs = self.env.observations()
@@ -74,9 +76,10 @@ class WrapEnv(object):
 
     self.rewards += reward
     self.ep_len += 1
+    self.action_stat[action] += 1
 
     if done:
-      epinfo = {"r": self.rewards, "l": self.ep_len, "t": round(time.time() - self.tstart, 6)}
+      epinfo = {"r": self.rewards, "l": self.ep_len, "t": round(time.time() - self.tstart, 6), 'stat': self.action_stat}
       self.logger.writekvs(epinfo)
 
     return obs, np.clip(reward, -1.0, 1.0), done, {'ale.lives': 0}
