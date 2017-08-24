@@ -154,7 +154,8 @@ def find_trainable_variables(key):
         return tf.trainable_variables()
 
 def make_path(f):
-    return os.makedirs(f, exist_ok=True)
+    if not os.path.exists(f): 
+        os.makedirs(f)
 
 def constant(p):
     return 1

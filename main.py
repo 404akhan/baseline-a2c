@@ -100,14 +100,19 @@ class Model(object):
         def save(save_path):
             ps = sess.run(params)
             make_path(save_path)
-            joblib.dump(ps, save_path)
+            joblib.dump(ps, os.path.join(save_path, 'params.ckpt'))
+            print('saved model at {}'.format(os.path.join(save_path, 'params.ckpt')))
 
         def load(load_path):
-            loaded_params = joblib.load(load_path)
-            restores = []
-            for p, loaded_p in zip(params, loaded_params):
-                restores.append(p.assign(loaded_p))
-            ps = sess.run(restores)
+            if os.path.exists(os.path.join(load_path, 'params.ckpt')):
+                loaded_params = joblib.load(os.path.join(load_path, 'params.ckpt'))
+                restores = []
+                for p, loaded_p in zip(params, loaded_params):
+                    restores.append(p.assign(loaded_p))
+                ps = sess.run(restores)
+                print('loaded ckpt')
+            else:
+                print('no ckpt found')
 
         self.train = train
         self.train_model = train_model
@@ -184,7 +189,7 @@ class Runner(object):
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values
 
 
-def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
+def learn(policy, env, seed, save_path, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, log_interval=100):
     tf.reset_default_graph()
 
     nenvs = env.num_envs
@@ -193,6 +198,7 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
     num_procs = len(env.remotes) # HACK
     model = Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nenvs=nenvs, nsteps=nsteps, nstack=nstack, num_procs=num_procs, ent_coef=ent_coef, vf_coef=vf_coef,
         max_grad_norm=max_grad_norm, lr=lr, alpha=alpha, epsilon=epsilon, total_timesteps=total_timesteps, lrschedule=lrschedule)
+    model.load(save_path)
     runner = Runner(env, model, nsteps=nsteps, nstack=nstack, gamma=gamma)
 
     nbatch = nenvs*nsteps
@@ -205,6 +211,9 @@ def learn(policy, env, seed, nsteps=5, nstack=4, total_timesteps=int(80e6), vf_c
         if update % log_interval == 0 or update == 1:
             print("nupdates {}, total_timesteps {}, fps {}, policy_entropy {}, value_loss {}".format(\
                 update, update*nbatch, fps, float(policy_entropy), float(value_loss)))
+        if update % (log_interval*100) == 0 or update == 1:
+            model.save(save_path)
+
     env.close()
 
 
@@ -213,6 +222,7 @@ parser.add_argument('--nenvs', type=int, default=16)
 parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--env-name', default='stairway_to_melon')
 parser.add_argument('--log-dir', default='logs')
+parser.add_argument('--save-path', default='model')
 
 
 if __name__ == '__main__':
@@ -221,9 +231,7 @@ if __name__ == '__main__':
     
     tf.set_random_seed(args.seed)
     np.random.seed(args.seed)
-
-    if not os.path.exists(args.log_dir): 
-        os.makedirs(args.log_dir)
+    make_path(args.log_dir)
 
     def make_env(rank):
         def env_fn():
@@ -237,4 +245,4 @@ if __name__ == '__main__':
 
     env = SubprocVecEnv([make_env(i) for i in range(args.nenvs)])
     policy = CnnPolicy
-    learn(policy, env, args.seed)
+    learn(policy, env, args.seed, args.save_path)
