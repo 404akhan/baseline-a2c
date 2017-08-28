@@ -7,9 +7,8 @@ import logging
 import numpy as np
 import tensorflow as tf
 
-from wrappers import SubprocVecEnv, wrap_deepmind
+from wrappers import SubprocVecEnv
 from utils import *
-from monitor import Monitor
 from helpers import WrapEnv
 
 
